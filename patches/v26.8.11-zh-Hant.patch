@@ -1,0 +1,1692 @@
+diff --git a/app/Sources/MLXServe/MLXServeApp.swift b/app/Sources/MLXServe/MLXServeApp.swift
+index 441ed37..cd75f62 100644
+--- a/app/Sources/MLXServe/MLXServeApp.swift
++++ b/app/Sources/MLXServe/MLXServeApp.swift
+@@ -172,7 +172,7 @@ struct MLXCoreApp: App {
+         // were 960pt-wide windows in their own right.
+         .defaultSize(width: 1160, height: 780)
+ 
+-        Window("Browser", id: "browser") {
++        Window("瀏覽器", id: "browser") {
+             BrowserView()
+         }
+         .defaultSize(width: 1024, height: 768)
+@@ -181,7 +181,7 @@ struct MLXCoreApp: App {
+         // The inline log on the tray popover is still there for a glance;
+         // this is the one you keep open for long sessions where copy/paste
+         // and a roomy scroll-back matter.
+-        Window("Server Log", id: "serverLog") {
++        Window("伺服器日誌", id: "serverLog") {
+             ServerLogWindowView()
+                 .environmentObject(appState.server)
+         }
+@@ -191,7 +191,7 @@ struct MLXCoreApp: App {
+         // (pi / hermes / shell over ssh) inside the guest, plus the Activity
+         // transcript of everything running in it. Title tracks the live
+         // session via .navigationTitle ("pi — MLX Sandbox").
+-        Window("MLX Sandbox", id: "sandboxTerminal") {
++        Window("MLX 沙盒", id: "sandboxTerminal") {
+             SandboxTerminalView()
+                 .environmentObject(appState)
+                 .environmentObject(appState.server)
+@@ -201,7 +201,7 @@ struct MLXCoreApp: App {
+         // Agents (personas): who you're talking to, and the settings that
+         // conversation runs under. Configuration only — chatting with an agent
+         // happens in the Chat window.
+-        Window("Agents", id: "agents") {
++        Window("代理", id: "agents") {
+             AgentsWindow()
+                 .environmentObject(appState)
+                 .environmentObject(appState.agents)
+@@ -212,7 +212,7 @@ struct MLXCoreApp: App {
+ 
+         .commands {
+             CommandGroup(replacing: .newItem) {
+-                    Button("New Chat") {
++                    Button("新增對話") {
+                         openAndFocus("chat")
+                         _ = appState.newChatSession()
+                     }
+@@ -224,33 +224,33 @@ struct MLXCoreApp: App {
+                     // a ScrollView of plain Buttons never is — see the note in
+                     // `ChatSidebar.conversationsSidebar`. It also makes the
+                     // shortcut discoverable, which a bare key never was.
+-                    Button("Delete Chat") { appState.requestChatDeletionFromMenu() }
++                    Button("刪除對話") { appState.requestChatDeletionFromMenu() }
+                         .keyboardShortcut(.delete, modifiers: [.command])
+                         .disabled(appState.chatDeletionTarget == nil)
+                 }
+-            CommandMenu("Agent") {
+-                Button("Agents…") { openAndFocus("agents") }
++            CommandMenu("代理") {
++                Button("代理…") { openAndFocus("agents") }
+                     .keyboardShortcut("a", modifiers: [.command, .shift])
+ 
+-                Button("Browser") { openAndFocus("browser") }
++                Button("瀏覽器") { openAndFocus("browser") }
+                     .keyboardShortcut("b", modifiers: [.command, .shift])
+ 
+-                Button("Settings…") { appState.showSettings() }
++                Button("設定…") { appState.showSettings() }
+                     .keyboardShortcut(",", modifiers: [.command])
+ 
+-                Button("Edit System Prompt") {
++                Button("編輯系統提示詞") {
+                     AgentPrompt.openSystemPromptInEditor()
+                 }
+                 .keyboardShortcut("p", modifiers: [.command, .shift])
+ 
+                 // Pull in the latest built-in default when ours has moved ahead of
+                 // the on-disk copy. Backs up the user's current prompt first.
+-                Button("Update System Prompt to Latest…") {
++                Button("將系統提示詞更新至最新版…") {
+                     AgentPrompt.runSystemPromptUpdateFlow()
+                 }
+                 .disabled(!AgentPrompt.isSystemPromptOutdated())
+ 
+-                Button("Open Memory File") {
++                Button("開啟記憶檔案") {
+                     let path = NSString(string: "~/.mlx-serve/memory.md").expandingTildeInPath
+                     if !FileManager.default.fileExists(atPath: path) {
+                         try? "".write(toFile: path, atomically: true, encoding: .utf8)
+@@ -258,7 +258,7 @@ struct MLXCoreApp: App {
+                     NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                 }
+ 
+-                Button("Open Skills Folder") {
++                Button("開啟 Skills 資料夾") {
+                     // Accessing the shared manager seeds the example skill on
+                     // first run; the create is a no-op if it already exists.
+                     let path = AgentPrompt.skillManager.skillsDirectory
+@@ -266,7 +266,7 @@ struct MLXCoreApp: App {
+                     NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                 }
+ 
+-                Button("Open MLX Serve Folder") {
++                Button("開啟 MLX Serve 資料夾") {
+                     let path = NSString(string: "~/.mlx-serve").expandingTildeInPath
+                     NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                 }
+@@ -277,18 +277,18 @@ struct MLXCoreApp: App {
+             // the tray popover, reachable from the menu bar and Help-menu
+             // search. The media section iterates the SAME catalog as the
+             // chips so the two lists cannot drift.
+-            CommandMenu("Tools") {
++            CommandMenu("工具") {
+                 // ⌘L: the model switcher, over the same rows the composer's
+                 // pill offers. A menu key equivalent so it works from every
+                 // window, and it goes through AppState's door — which raises
+                 // the picker AND brings the chat window forward.
+-                Button("Switch Model…") { appState.showModelPalette() }
++                Button("切換模型…") { appState.showModelPalette() }
+                     .keyboardShortcut("l", modifiers: [.command])
+ 
+-                Button("Browse Models…") { appState.showModels() }
++                Button("瀏覽模型…") { appState.showModels() }
+                     .keyboardShortcut("m", modifiers: [.command, .shift])
+ 
+-                Button("Scheduled Tasks…") { appState.showTasks() }
++                Button("排程任務…") { appState.showTasks() }
+                     .keyboardShortcut("t", modifiers: [.command, .shift])
+ 
+                 Divider()
+@@ -307,7 +307,7 @@ struct MLXCoreApp: App {
+                 // DMG builds only — the MAS build can't detect or launch
+                 // other apps' CLIs (same gate as the tray's Code button).
+                 if BuildFeatures.current.cliLauncher {
+-                    Button("Launch Claude Code…") {
++                    Button("啟動 Claude Code…") {
+                         launchClaudeCodeWithPicker(
+                             baseURL: appState.server.baseURL,
+                             serverContextLength: appState.server.chatModelInfo?.contextLength)
+@@ -318,7 +318,7 @@ struct MLXCoreApp: App {
+                 // Carbon hotkey (QuickLauncherController); a menu key
+                 // equivalent on the same combo would race it while the app is
+                 // frontmost, so the combo rides the title instead.
+-                Button("Quick Launcher (\(QuickLauncherHotKey.display))") {
++                Button("快速啟動器（\(QuickLauncherHotKey.display)）") {
+                     if !appState.quickLauncherEnabled { appState.quickLauncherEnabled = true }
+                     appState.quickLauncher.show()
+                 }
+diff --git a/app/Sources/MLXServe/Models/Agent.swift b/app/Sources/MLXServe/Models/Agent.swift
+index dba7ad8..b008d74 100644
+--- a/app/Sources/MLXServe/Models/Agent.swift
++++ b/app/Sources/MLXServe/Models/Agent.swift
+@@ -386,34 +386,34 @@ extension Agent {
+     /// already ran the app. Duplicate one to edit it.
+     static let starters: [Agent] = [
+         Agent(id: UUID(uuidString: "A6E1F0C0-0001-4000-8000-000000000001")!,
+-              name: "Assistant",
+-              brief: "a plain, direct general assistant",
+-              systemPrompt: "You are a direct, capable assistant. You answer the question that was asked, in as few words as it takes, and you say plainly when you don't know something instead of guessing. You never pad an answer with restatements of the question or offers to help further.",
++              name: "助理",
++              brief: "直率、可靠的通用助理",
++              systemPrompt: "你是一位直率且可靠的助理。請以足以回答問題的最少文字作答；不知道時要坦白說明，不可猜測。不要重述問題，也不要用客套的後續協助邀請灌水。請一律使用繁體中文。",
+               symbol: "sparkles",
+               isBuiltIn: true,
+               // Plain chat with a persona — no tools, so a small model isn't
+               // handed a tool block it doesn't need.
+               capabilities: AgentCapabilities(tools: false, mcp: false, web: false)),
+         Agent(id: UUID(uuidString: "A6E1F0C0-0001-4000-8000-000000000002")!,
+-              name: "Coder",
+-              brief: "a hands-on programmer that reads and edits real files",
+-              systemPrompt: "You are a careful programmer working in the user's own project. You answer concisely — the change, where it is, and anything that surprised you. You read the surrounding code before you change anything, and you match the conventions already there rather than importing your own. You make the smallest change that does the job, you run the tests when there are tests to run, and you report what you actually verified — never what you assume works. When something is broken beyond the task at hand, you say so instead of quietly widening the change.",
++              name: "程式設計師",
++              brief: "能讀取並修改實際檔案的實作型程式設計師",
++              systemPrompt: "你是一位在使用者實際專案中工作的謹慎程式設計師。請簡潔說明改了什麼、位置在哪，以及任何意外發現。修改前先閱讀周邊程式碼，遵循既有慣例，只做足以完成工作的最小變更；有測試時必須執行，且只回報實際驗證過的結果。若發現超出任務範圍的故障，要清楚指出，不可默默擴大修改範圍。請一律使用繁體中文。",
+               symbol: "chevron.left.forwardslash.chevron.right",
+               isBuiltIn: true,
+               capabilities: AgentCapabilities(tools: true, mcp: false, web: true)),
+         Agent(id: UUID(uuidString: "A6E1F0C0-0001-4000-8000-000000000003")!,
+-              name: "Researcher",
+-              brief: "looks things up on the web and summarises with sources",
+-              systemPrompt: "You are a research assistant. You answer briefly and lead with what the sources actually say. You look things up before answering rather than relying on memory, you read more than one source when the answer matters, and you always say where a claim came from. You separate what the sources actually say from your own inference, and you flag when the sources disagree or when the information looks out of date.",
++              name: "研究員",
++              brief: "上網查證並附來源整理重點",
++              systemPrompt: "你是一位研究助理。回答要簡潔，並優先陳述來源實際內容。作答前先查證，不依賴記憶；重要問題須閱讀多個來源，並註明主張的出處。要區分來源陳述與你的推論，若來源互相矛盾或資訊可能過時，必須明確標示。請一律使用繁體中文。",
+               symbol: "globe",
+               isBuiltIn: true,
+               // Web only: the loop runs, but browse + webSearch are the whole
+               // toolbox — no shell, no file writes.
+               capabilities: AgentCapabilities(tools: false, mcp: false, web: true)),
+         Agent(id: UUID(uuidString: "A6E1F0C0-0001-4000-8000-000000000004")!,
+-              name: "Chef",
+-              brief: "cooks from what's already in the kitchen",
+-              systemPrompt: "You are a practical home cook. You keep answers short — the dish, the steps, the timings. You suggest dishes from what the user already has, you keep steps short and in order, and you give real quantities and timings. You mention the one thing most likely to go wrong with a recipe, and you offer a substitution when an ingredient is missing rather than sending the user shopping.",
++              name: "主廚",
++              brief: "運用廚房現有食材設計料理",
++              systemPrompt: "你是一位務實的家庭主廚。回答要簡短，包含菜色、步驟與時間。優先使用使用者現有食材，步驟精簡且依序排列，提供明確份量與時間；指出最容易失敗的一點。缺少食材時優先提供替代方案，不要只叫使用者去採買。請一律使用繁體中文。",
+               symbol: "fork.knife",
+               isBuiltIn: true,
+               capabilities: AgentCapabilities(tools: false, mcp: false, web: false)),
+diff --git a/app/Sources/MLXServe/Models/ChatGreeting.swift b/app/Sources/MLXServe/Models/ChatGreeting.swift
+index 0fbfa58..f9d1730 100644
+--- a/app/Sources/MLXServe/Models/ChatGreeting.swift
++++ b/app/Sources/MLXServe/Models/ChatGreeting.swift
+@@ -3,9 +3,9 @@ import Foundation
+ /// What an empty conversation says above its composer, and whether it offers
+ /// the discovery chips underneath.
+ enum ChatGreeting {
+-    static let plainHeading = "How can I help you today?"
++    static let plainHeading = "今天想讓我怎麼幫你？"
+     /// Outranks the brief: it is the one thing that must be acted on first.
+-    static let serverStopped = "Start the server to begin."
++    static let serverStopped = "請先啟動伺服器。"
+ 
+     static func heading(agentName: String?) -> String {
+         agentName?.trimmedNonEmpty ?? plainHeading
+diff --git a/app/Sources/MLXServe/Models/ChatSessionTitle.swift b/app/Sources/MLXServe/Models/ChatSessionTitle.swift
+index b16c14f..eb76b61 100644
+--- a/app/Sources/MLXServe/Models/ChatSessionTitle.swift
++++ b/app/Sources/MLXServe/Models/ChatSessionTitle.swift
+@@ -21,13 +21,14 @@ enum ChatSessionTitle {
+     /// Every placeholder, never one of them: this is the auto-titler's gate.
+     static func isPlaceholder(_ title: String) -> Bool {
+         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+-        return trimmed == plain || trimmed == agent
++        return trimmed == plain || trimmed == agent || trimmed == "新增對話" || trimmed == "新增代理"
+     }
+ 
+     /// What the sidebar actually draws.
+     static func display(title: String, agentName: String?) -> String {
+         if let named = agentName?.trimmedNonEmpty { return named }
+-        return isPlaceholder(title) ? placeholder(hasAgent: agentName != nil) : title
++        if isPlaceholder(title) { return agentName != nil ? "新增代理" : "新增對話" }
++        return title
+     }
+ 
+     /// The caption under an agent thread's name: what that conversation is
+diff --git a/app/Sources/MLXServe/Models/MediaModelPicks.swift b/app/Sources/MLXServe/Models/MediaModelPicks.swift
+index 6433904..3db65dc 100644
+--- a/app/Sources/MLXServe/Models/MediaModelPicks.swift
++++ b/app/Sources/MLXServe/Models/MediaModelPicks.swift
+@@ -61,13 +61,13 @@ enum MediaModelPicks {
+ /// label are treated as a ranking and only the better one is featured.
+ extension ImageModelPreset {
+     var capabilityLabel: String {
+-        supportsReferenceEdit ? "Best for editing photos" : "Best for creating images"
++        supportsReferenceEdit ? "最適合編輯照片" : "最適合生成圖片"
+     }
+ }
+ 
+ extension VideoModelPreset {
+     var capabilityLabel: String {
+-        generatesAudio ? "Best for video with sound" : "Best for video"
++        generatesAudio ? "最適合生成有聲影片" : "最適合生成影片"
+     }
+ }
+ 
+@@ -75,15 +75,15 @@ extension AudioModelPreset {
+     /// One job: speech (and every entry in `.all` can clone a voice — the
+     /// voice-only backends live in `allIncludingVoiceOnly` and never reach a
+     /// pane's picker).
+-    var capabilityLabel: String { "Best for speech and voice cloning" }
++    var capabilityLabel: String { "最適合語音生成與聲線複製" }
+ }
+ 
+ extension MusicModelPreset {
+     var capabilityLabel: String {
+-        family == .acestep ? "Fastest music (8-step Turbo)" : "Best for full songs with vocals"
++        family == .acestep ? "最快的音樂生成（8 步 Turbo）" : "最適合生成含人聲的完整歌曲"
+     }
+ }
+ 
+ extension Model3DModelPreset {
+-    var capabilityLabel: String { "Best for turning a photo into a 3D model" }
++    var capabilityLabel: String { "最適合將照片轉成 3D 模型" }
+ }
+diff --git a/app/Sources/MLXServe/Models/SettingsCategory.swift b/app/Sources/MLXServe/Models/SettingsCategory.swift
+index 2fb02f6..c869f93 100644
+--- a/app/Sources/MLXServe/Models/SettingsCategory.swift
++++ b/app/Sources/MLXServe/Models/SettingsCategory.swift
+@@ -38,19 +38,19 @@ enum SettingsCategory: String, CaseIterable, Identifiable, Hashable {
+     /// engine a knob applies to.
+     var title: String {
+         switch self {
+-        case .modelFolders:      return "Model Folders"
+-        case .server:            return "Server"
+-        case .lanSharing:        return "LAN Sharing"
+-        case .performance:       return "Performance"
+-        case .specDecode:        return "Speculative Decoding (MLX only)"
+-        case .ggufPerformance:   return "GGUF Performance (llama.cpp)"
+-        case .ds4:               return "DeepSeek-V4 (ds4 engine)"
+-        case .requestDefaults:   return "Per-Request Defaults"
+-        case .voice:             return "Voice"
+-        case .sandbox:           return "Agent Sandbox"
+-        case .messaging:         return "Messaging — Telegram bot"
+-        case .updates:           return "Updates"
+-        case .about:             return "About mlx-serve"
++        case .modelFolders:      return "模型資料夾"
++        case .server:            return "伺服器"
++        case .lanSharing:        return "區域網路共享"
++        case .performance:       return "效能"
++        case .specDecode:        return "推測解碼（僅 MLX）"
++        case .ggufPerformance:   return "GGUF 效能（llama.cpp）"
++        case .ds4:               return "DeepSeek-V4（ds4 引擎）"
++        case .requestDefaults:   return "每次請求的預設值"
++        case .voice:             return "語音"
++        case .sandbox:           return "代理沙盒"
++        case .messaging:         return "訊息服務 — Telegram 機器人"
++        case .updates:           return "更新"
++        case .about:             return "關於 mlx-serve"
+         }
+     }
+ 
+@@ -58,10 +58,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable, Hashable {
+     /// form (the sidebar is already grouped by engine context).
+     var sidebarLabel: String {
+         switch self {
+-        case .specDecode:        return "Speculative Decoding"
+-        case .ggufPerformance:   return "GGUF Performance"
++        case .specDecode:        return "推測解碼"
++        case .ggufPerformance:   return "GGUF 效能"
+         case .ds4:               return "DeepSeek-V4"
+-        case .messaging:         return "Messaging"
++        case .messaging:         return "訊息服務"
+         default:                 return title
+         }
+     }
+diff --git a/app/Sources/MLXServe/Services/CLILauncher.swift b/app/Sources/MLXServe/Services/CLILauncher.swift
+index 4b45166..88114ca 100644
+--- a/app/Sources/MLXServe/Services/CLILauncher.swift
++++ b/app/Sources/MLXServe/Services/CLILauncher.swift
+@@ -435,7 +435,7 @@ struct CLILauncherButton: View {
+                 } label: {
+                     HStack(spacing: TrayFooterMetrics.iconSpacing) {
+                         Image(systemName: "terminal")
+-                        Text("Code")
++                        Text("程式碼")
+                     }
+                     .frame(maxWidth: .infinity)
+                 }
+@@ -472,7 +472,7 @@ struct CLILauncherMenuItems: View {
+ 
+     var body: some View {
+         if !detector.available.isEmpty {
+-            Section("On this Mac") {
++            Section("在這台 Mac 上") {
+                 ForEach(detector.available) { cli in
+                     Button {
+                         detector.launchWithPicker(cli, baseURL: baseURL, servedModelId: servedModelId,
+@@ -483,12 +483,12 @@ struct CLILauncherMenuItems: View {
+                 }
+             }
+         }
+-        Section("In the sandbox") {
++        Section("在沙盒中") {
+             ForEach(SandboxAgentRegistry.all) { spec in
+                 Button {
+                     openSandboxAgent(spec.id)
+                 } label: {
+-                    Label("\(spec.displayName) in Sandbox", systemImage: "shippingbox")
++                    Label("\(spec.displayName)（沙盒）", systemImage: "shippingbox")
+                 }
+             }
+         }
+diff --git a/app/Sources/MLXServe/Services/CLISetupInstructions.swift b/app/Sources/MLXServe/Services/CLISetupInstructions.swift
+index f178aaa..3193c8f 100644
+--- a/app/Sources/MLXServe/Services/CLISetupInstructions.swift
++++ b/app/Sources/MLXServe/Services/CLISetupInstructions.swift
+@@ -145,7 +145,7 @@ struct CLISetupInstructionsButton: View {
+         } label: {
+             HStack(spacing: TrayFooterMetrics.iconSpacing) {
+                 Image(systemName: "terminal")
+-                Text("Code")
++                Text("程式碼")
+             }
+             .frame(maxWidth: .infinity)
+         }
+@@ -176,9 +176,9 @@ struct CLISetupInstructionsView: View {
+ 
+     var body: some View {
+         VStack(alignment: .leading, spacing: 10) {
+-            Text("Use with a coding agent")
++            Text("搭配程式開發代理使用")
+                 .font(.headline)
+-            Text("Run these commands in Terminal from your project folder. They point the CLI at this Mac's local server — nothing leaves your machine.")
++            Text("請在專案資料夾的終端機執行下列指令。它們會讓 CLI 連到此 Mac 的本機伺服器，資料不會離開你的電腦。")
+                 .font(.caption)
+                 .foregroundStyle(.secondary)
+                 .fixedSize(horizontal: false, vertical: true)
+diff --git a/app/Sources/MLXServe/Views/AudioGenView.swift b/app/Sources/MLXServe/Views/AudioGenView.swift
+index d7dec29..6d4c7c7 100644
+--- a/app/Sources/MLXServe/Views/AudioGenView.swift
++++ b/app/Sources/MLXServe/Views/AudioGenView.swift
+@@ -361,7 +361,7 @@ struct VoiceGenView: View {
+             HStack {
+                 Text("Reference voice").font(.subheadline.weight(.semibold))
+                 Spacer()
+-                Text("~\(model.recommendedRefSeconds)s recommended")
++                Text("建議約 \(model.recommendedRefSeconds) 秒")
+                     .font(.caption).foregroundStyle(.secondary)
+             }
+ 
+@@ -417,7 +417,7 @@ struct VoiceGenView: View {
+                         .font(.caption)
+                 }
+             } else {
+-                Text("Pick, record or drag in ~\(model.recommendedRefSeconds) seconds of the voice to clone. Without a reference, the model's default voice is used.")
++                Text("請選擇、錄製或拖入約 \(model.recommendedRefSeconds) 秒的聲音作為聲線參考；未提供時會使用模型預設語音。")
+                     .font(.caption2).foregroundStyle(.secondary)
+             }
+ 
+diff --git a/app/Sources/MLXServe/Views/ChatEmptyState.swift b/app/Sources/MLXServe/Views/ChatEmptyState.swift
+index e9f80de..bb9172a 100644
+--- a/app/Sources/MLXServe/Views/ChatEmptyState.swift
++++ b/app/Sources/MLXServe/Views/ChatEmptyState.swift
+@@ -37,13 +37,13 @@ enum ChatEmptyState {
+     /// The four generation windows behind the "Create Media" chip — and the
+     /// Tools menu's media section (same array, deliberately).
+     static let mediaItems: [Item] = [
+-        Item(id: "media-image", title: "Image Generation", systemImage: "photo",
++        Item(id: "media-image", title: "圖像生成", systemImage: "photo",
+              tint: .purple, action: .create(.image)),
+-        Item(id: "media-video", title: "Video Generation", systemImage: "film",
++        Item(id: "media-video", title: "影片生成", systemImage: "film",
+              tint: .indigo, action: .create(.video)),
+-        Item(id: "media-audio", title: "Audio & Music", systemImage: "waveform",
++        Item(id: "media-audio", title: "音訊與音樂", systemImage: "waveform",
+              tint: .pink, action: .create(.audio)),
+-        Item(id: "media-3d", title: "3D Model", systemImage: "cube",
++        Item(id: "media-3d", title: "3D 模型", systemImage: "cube",
+              tint: .brown, action: .create(.model3d)),
+     ]
+ 
+@@ -61,20 +61,20 @@ enum ChatEmptyState {
+     /// button), and a chip that can only fail is the dead-control class.
+     static func chips(cliLauncherAvailable: Bool = BuildFeatures.current.cliLauncher) -> [Item] {
+         var items: [Item] = [
+-            Item(id: "create", title: "Create Media", systemImage: "wand.and.stars",
++            Item(id: "create", title: "建立媒體", systemImage: "wand.and.stars",
+                  tint: .purple, action: .mediaMenu,
+-                 help: "Generate images, video, audio, or 3D models"),
+-            Item(id: "models", title: "Browse Models", systemImage: "magnifyingglass",
++                 help: "生成圖像、影片、音訊或 3D 模型"),
++            Item(id: "models", title: "瀏覽模型", systemImage: "magnifyingglass",
+                  tint: .blue, action: .models,
+-                 help: "Search and download models"),
+-            Item(id: "tasks", title: "Tasks", systemImage: "clock.badge.checkmark",
++                 help: "搜尋並下載模型"),
++            Item(id: "tasks", title: "任務", systemImage: "clock.badge.checkmark",
+                  tint: .orange, action: .tasks,
+-                 help: "Scheduled and background agent tasks"),
++                 help: "排程與背景代理任務"),
+         ]
+         if cliLauncherAvailable {
+-            items.append(Item(id: "code", title: "Code Launcher", systemImage: "terminal",
++            items.append(Item(id: "code", title: "程式啟動器", systemImage: "terminal",
+                               tint: .green, action: .codeLauncher,
+-                              help: "Launch a coding agent against this server — on this Mac or inside the sandbox"))
++                              help: "在這台 Mac 或沙盒中啟動連接此伺服器的程式代理"))
+         }
+         return items
+     }
+diff --git a/app/Sources/MLXServe/Views/ChatView.swift b/app/Sources/MLXServe/Views/ChatView.swift
+index c18f44b..81be603 100644
+--- a/app/Sources/MLXServe/Views/ChatView.swift
++++ b/app/Sources/MLXServe/Views/ChatView.swift
+@@ -946,12 +946,12 @@ struct ChatSidebar: View {
+             let ordered = groups.agents.map(\.id) + groups.chats.map(\.id)
+             LazyVStack(alignment: .leading, spacing: 2) {
+                 if !groups.agents.isEmpty {
+-                    sectionHeader("Agents")
++                    sectionHeader("代理")
+                     ForEach(groups.agents) { session in
+                         sessionRow(session, ordered: ordered)
+                     }
+                 }
+-                sectionHeader("Chats")
++                sectionHeader("對話")
+                 ForEach(groups.chats) { session in
+                     sessionRow(session, ordered: ordered)
+                 }
+@@ -1065,17 +1065,17 @@ struct ChatSidebar: View {
+         .safeAreaInset(edge: .top) {
+             VStack(spacing: 2) {
+                 // New Chat, and beside it the choice of WHO the chat is with.
+-                destinationRow("New Chat", icon: "square.and.pencil",
++                destinationRow("新增對話", icon: "square.and.pencil",
+                                selected: false) {
+                     appState.showConversation()
+                     _ = appState.newChatSession()
+                 }
+-                destinationRow("Models", icon: "square.stack.3d.up",
++                destinationRow("模型", icon: "square.stack.3d.up",
+                                selected: appState.chatWorkspace.isModels,
+                                badge: activeDownloadCount) {
+                     appState.chatWorkspace.isModels ? appState.showConversation() : appState.showModels()
+                 }
+-                destinationRow("Settings", icon: "gearshape",
++                destinationRow("設定", icon: "gearshape",
+                                selected: appState.chatWorkspace.isSettings) {
+                     appState.chatWorkspace.isSettings ? appState.showConversation() : appState.showSettings()
+                 }
+@@ -1084,7 +1084,7 @@ struct ChatSidebar: View {
+                 // and the Tools menu iterate (`sidebarCreateItems` — a filter on
+                 // `mediaItems`, so the three surfaces cannot drift). Each row is
+                 // the mode switch for its generator page, exactly like Models.
+-                sectionHeader("Create")
++                sectionHeader("創作")
+                 ForEach(ChatEmptyState.sidebarCreateItems) { item in
+                     if case .create(let experiment) = item.action {
+                         destinationRow(item.title, icon: item.systemImage,
+@@ -1103,7 +1103,7 @@ struct ChatSidebar: View {
+                 // item, and proximity is what would say otherwise.
+                 agentsRow
+                     .padding(.top, 10)
+-                destinationRow("Tasks", icon: "clock.badge.checkmark",
++                destinationRow("任務", icon: "clock.badge.checkmark",
+                                selected: appState.chatWorkspace.isTasks) {
+                     appState.chatWorkspace.isTasks ? appState.showConversation() : appState.showTasks()
+                 }
+@@ -1466,7 +1466,7 @@ struct ChatSidebar: View {
+     /// The Agents row. A MENU, because "Agents" is two things: the agents you
+     /// can start a conversation as, and the editor for them.
+     private var agentsRow: some View {
+-        destinationRow("Agents", icon: "person.2",
++        destinationRow("代理", icon: "person.2",
+                        selected: appState.chatWorkspace.isAgents) {
+             appState.chatWorkspace.isAgents ? appState.showConversation() : appState.showAgents()
+         }
+@@ -1491,7 +1491,7 @@ struct ChatSidebar: View {
+                     })
+             } label: {
+                 // "Code", matching the tray's own Code button over the same menu.
+-                destinationLabel("Code", icon: "terminal", selected: false)
++                destinationLabel("程式碼", icon: "terminal", selected: false)
+             }
+             .menuStyle(.button)
+             .buttonStyle(.plain)
+@@ -2540,7 +2540,7 @@ struct ChatDetailView: View {
+     /// The input field. No background or border of its own — the composer
+     /// container draws those around both rows. NSTextView-backed so a big paste
+     /// stays smooth and the mouse wheel scrolls once it grows past the cap.
+-    private var composerPlaceholder: String { "Ask me anything…" }
++    private var composerPlaceholder: String { "有什麼想問的……" }
+ 
+     private var composerField: some View {
+         GrowingTextEditor(text: $inputText,
+diff --git a/app/Sources/MLXServe/Views/H3PromptExamples.swift b/app/Sources/MLXServe/Views/H3PromptExamples.swift
+index ca19ee0..949cf80 100644
+--- a/app/Sources/MLXServe/Views/H3PromptExamples.swift
++++ b/app/Sources/MLXServe/Views/H3PromptExamples.swift
+@@ -300,14 +300,14 @@ N/A
+     static func placeholder(for format: VideoPromptFormat) -> String {
+         switch format {
+         case .ltx:
+-            return "Describe your shot like a cinematographer — subject, action, camera movement, lighting, setting. 4–8 sentences. Put spoken dialogue in quotes to make characters talk. Click Examples above for a starting point."
++            return "以攝影指導的方式描述鏡頭：主體、動作、運鏡、光線與場景，建議 4～8 句。要讓角色說話，請用引號標示台詞；可由上方「範例」開始。"
+         // Kept to a few lines: this sits INSIDE the 110pt prompt editor, so a
+         // section-per-line list is clipped exactly where the last labels are.
+         // The labels are named here; the Examples menu carries the full shape.
+         case .h3Base:
+-            return "MiniMax-H3 expects three labelled fields — integrated_multimodal_description: (the shot, its style, action and camera movement), overall_soundscape: (ambience and physical sound), non_diegetic_music: (score only the audience hears, or N/A). Click Examples above for the exact shape."
++            return "MiniMax-H3 需要三個標記欄位：integrated_multimodal_description:（鏡頭、風格、動作與運鏡）、overall_soundscape:（環境與實體聲音）、non_diegetic_music:（只有觀眾聽得到的配樂，沒有則填 N/A）。請按上方「範例」查看完整格式。"
+         case .h3Reference:
+-            return "MiniMax-H3 REF2VA expects six labelled sections in order — subject_definitions:, summary:, retention_analysis: (what to DO with each reference), detailed_description:, overall_soundscape:, non_diegetic_music:. Refer to attachments as <Picture 1>, <Video 1>, <Audio 1>. Click Examples above."
++            return "MiniMax-H3 REF2VA 需要依序填寫六個區段：subject_definitions:、summary:、retention_analysis:（每個參考素材的用途）、detailed_description:、overall_soundscape:、non_diegetic_music:。附件請以 <Picture 1>、<Video 1>、<Audio 1> 引用；可按上方「範例」查看。"
+         }
+     }
+ 
+diff --git a/app/Sources/MLXServe/Views/ImageGenView.swift b/app/Sources/MLXServe/Views/ImageGenView.swift
+index 10a7cba..4d1399a 100644
+--- a/app/Sources/MLXServe/Views/ImageGenView.swift
++++ b/app/Sources/MLXServe/Views/ImageGenView.swift
+@@ -368,7 +368,7 @@ struct ImageGenView: View {
+     /// front. CFG is deliberately absent: no image backend reads a guidance
+     /// field, so quoting one would be inventing a knob.
+     private var qualityHint: String {
+-        "\(model.settings(quality).steps) steps"
++        "\(model.settings(quality).steps) 步"
+     }
+ 
+     private var resolutionSection: some View {
+diff --git a/app/Sources/MLXServe/Views/MediaModelChooser.swift b/app/Sources/MLXServe/Views/MediaModelChooser.swift
+index 33853e6..c221108 100644
+--- a/app/Sources/MLXServe/Views/MediaModelChooser.swift
++++ b/app/Sources/MLXServe/Views/MediaModelChooser.swift
+@@ -67,12 +67,12 @@ struct MediaModelChooser<P: MediaModelSizing>: View {
+             let display = lanModels.first { $0.name == lanModel }?.lanDisplayName
+                 ?? lanModel.replacingOccurrences(of: "@", with: " · ")
+             return (display,
+-                    "Running on \(LanPick.peer(of: lanModel)) over your network — nothing to download.",
++                    "透過區域網路在 \(LanPick.peer(of: lanModel)) 上執行，無須下載。",
+                     nil, true, nil)
+         }
+         if let pick = featured.first(where: { $0.preset.id == selectedId }) {
+             return (pick.preset.name, pick.capability,
+-                    "· ~\(pick.preset.approxRAMGB) GB RAM", pick.fits, pick.preset)
++                    "· 約 \(pick.preset.approxRAMGB) GB 記憶體", pick.fits, pick.preset)
+         }
+         if let p = others.first(where: { $0.id == selectedId })
+             ?? onThisMac.first(where: { $0.id == selectedId }) {
+@@ -81,7 +81,7 @@ struct MediaModelChooser<P: MediaModelSizing>: View {
+             // that DIDN'T make the featured list.
+             let fits = p.meetsSystemRequirements(
+                 physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory)
+-            return (p.name, capabilityOf(p), "· ~\(p.approxRAMGB) GB RAM", fits, p)
++            return (p.name, capabilityOf(p), "· 約 \(p.approxRAMGB) GB 記憶體", fits, p)
+         }
+         return (selectedId, "", nil, true, nil)
+     }
+@@ -234,7 +234,7 @@ extension MediaModelChooser {
+             lanModel: lanModel.wrappedValue,
+             capabilityOf: capabilityOf,
+             isDownloaded: { downloads.bundleReady(bundleOf($0)) },
+-            downloadLabel: { "Download \(bundleOf($0).approxSizeLabel)" },
++            downloadLabel: { "下載約 \(bundleOf($0).approxSizeLabel)" },
+             onSelect: { preset in
+                 lanModel.wrappedValue = nil
+                 selected.wrappedValue = preset
+diff --git a/app/Sources/MLXServe/Views/ModelBrowserView.swift b/app/Sources/MLXServe/Views/ModelBrowserView.swift
+index a70e9ba..9a58754 100644
+--- a/app/Sources/MLXServe/Views/ModelBrowserView.swift
++++ b/app/Sources/MLXServe/Views/ModelBrowserView.swift
+@@ -166,7 +166,7 @@ private struct RecommendedPane: View {
+             }
+             .padding(16)
+         }
+-        .navigationTitle("Recommended")
++        .navigationTitle("推薦")
+     }
+ }
+ 
+@@ -702,7 +702,7 @@ private struct DiscoverPane: View {
+                     .onChange(of: geo.size.width) { _, w in paneWidth = w }
+             }
+         )
+-        .navigationTitle("Discover")
++        .navigationTitle("探索")
+     }
+ }
+ 
+@@ -795,7 +795,7 @@ private struct MyModelsPane: View {
+             .padding(.horizontal, 12)
+             .padding(.vertical, 6)
+         }
+-        .navigationTitle("My Models")
++        .navigationTitle("我的模型")
+     }
+ }
+ 
+@@ -832,7 +832,7 @@ private struct DownloadsPane: View {
+                 }
+             }
+         }
+-        .navigationTitle("Downloads")
++        .navigationTitle("下載項目")
+     }
+ }
+ 
+@@ -886,7 +886,7 @@ private struct MediaPane: View {
+             }
+             .padding(16)
+         }
+-        .navigationTitle("Media")
++        .navigationTitle("媒體")
+     }
+ }
+ 
+diff --git a/app/Sources/MLXServe/Views/QuickLauncherView.swift b/app/Sources/MLXServe/Views/QuickLauncherView.swift
+index 44d250f..ba0c398 100644
+--- a/app/Sources/MLXServe/Views/QuickLauncherView.swift
++++ b/app/Sources/MLXServe/Views/QuickLauncherView.swift
+@@ -111,22 +111,22 @@ struct QuickLauncherView: View {
+ 
+     private var footer: some View {
+         HStack(spacing: 12) {
+-            Text("↩ ask · esc close")
++            Text("↩ 詢問 · esc 關閉")
+                 .font(.caption2)
+                 .foregroundStyle(.tertiary)
+             Spacer()
+             if generatingHere {
+-                Button("Stop") { controller.stopOwnTurn() }
++                Button("停止") { controller.stopOwnTurn() }
+                     .keyboardShortcut(".", modifiers: .command)
+                     .controlSize(.small)
+             }
+-            Button("New  ⌘N") {
++            Button("新增  ⌘N") {
+                 controller.newConversation()
+                 query = ""
+             }
+             .keyboardShortcut("n", modifiers: .command)
+             .controlSize(.small)
+-            Button("Open in Chat  ⌘↩") { controller.openInChat() }
++            Button("在對話中開啟  ⌘↩") { controller.openInChat() }
+                 .keyboardShortcut(.return, modifiers: .command)
+                 .controlSize(.small)
+         }
+@@ -145,8 +145,8 @@ struct QuickLauncherTrayRow: View {
+     var body: some View {
+         TrayFeatureRow(
+             icon: "bolt.fill",
+-            title: "Quick Launcher",
+-            subtitle: "\(QuickLauncherHotKey.display) — ask from anywhere",
++            title: "快速啟動器",
++            subtitle: "\(QuickLauncherHotKey.display) — 隨處都能提問",
+             isOn: appState.quickLauncherEnabled
+         ) {
+             Toggle("", isOn: $appState.quickLauncherEnabled)
+diff --git a/app/Sources/MLXServe/Views/SettingsView.swift b/app/Sources/MLXServe/Views/SettingsView.swift
+index e56d339..aa04c6e 100644
+--- a/app/Sources/MLXServe/Views/SettingsView.swift
++++ b/app/Sources/MLXServe/Views/SettingsView.swift
+@@ -35,7 +35,7 @@ struct SettingsView: View {
+ 
+     var body: some View {
+         shell
+-        .navigationTitle("Settings")
++        .navigationTitle("設定")
+         // An engine switch can retire the selected category (load a GGUF model
+         // while "MLX Performance" is selected) — fall back to All rather than
+         // leave a blank pane.
+@@ -202,7 +202,7 @@ private struct SettingsSidebar: View {
+                 onPick()
+             }
+         )) {
+-            Label("All Settings", systemImage: "square.grid.2x2")
++            Label("所有設定", systemImage: "square.grid.2x2")
+                 .tag(SettingsSelection.all)
+             Section {
+                 ForEach(categories) { category in
+@@ -277,7 +277,7 @@ private struct SettingsSearchField: View {
+         HStack(spacing: 8) {
+             Image(systemName: "magnifyingglass")
+                 .foregroundStyle(.secondary)
+-            TextField("Filter settings", text: $text)
++            TextField("篩選設定", text: $text)
+                 .textFieldStyle(.plain)
+             if !text.isEmpty {
+                 Button {
+@@ -287,7 +287,7 @@ private struct SettingsSearchField: View {
+                 }
+                 .buttonStyle(.borderless)
+                 .foregroundStyle(.secondary)
+-                .help("Clear the filter")
++                .help("清除篩選條件")
+             }
+         }
+         .padding(.horizontal, 10)
+@@ -309,10 +309,10 @@ private struct NoSearchResults: View {
+             Image(systemName: "magnifyingglass")
+                 .font(.title2)
+                 .foregroundStyle(.secondary)
+-            Text("No settings match “\(query)”")
++            Text("找不到符合「\(query)」的設定")
+                 .font(.subheadline)
+                 .foregroundStyle(.secondary)
+-            Button("Clear filter", action: clear)
++            Button("清除篩選", action: clear)
+                 .buttonStyle(.bordered)
+                 .controlSize(.small)
+         }
+@@ -360,11 +360,11 @@ private struct ResetDefaultsFooter: View {
+                     isPresented: $showConfirm,
+                     titleVisibility: .visible
+                 ) {
+-                    Button("Reset", role: .destructive) {
++                    Button("重設", role: .destructive) {
+                         appState.serverOptions = SettingsReset.apply(selection, to: appState.serverOptions)
+                     }
+                     .keyboardShortcut(.defaultAction)
+-                    Button("Cancel", role: .cancel) { }
++                    Button("取消", role: .cancel) { }
+                 } message: {
+                     Text(helpText)
+                 }
+@@ -385,14 +385,14 @@ private struct RestartBanner: View {
+                 .font(.title2)
+                 .foregroundStyle(.orange)
+             VStack(alignment: .leading, spacing: 2) {
+-                Text("Some changes require a server restart")
++                Text("部分變更需要重新啟動伺服器")
+                     .font(.subheadline.weight(.semibold))
+-                Text("Click Restart Now to apply, or Discard to revert the unsaved server-launch fields.")
++                Text("按下「立即重新啟動」套用，或選擇「捨棄」還原尚未套用的伺服器啟動設定。")
+                     .font(.caption)
+                     .foregroundStyle(.secondary)
+             }
+             Spacer()
+-            Button("Restart Now") {
++            Button("立即重新啟動") {
+                 let opts = appState.serverOptions
+                 let model = appState.selectedModelPath
+                 server.stop()
+@@ -403,7 +403,7 @@ private struct RestartBanner: View {
+             .buttonStyle(.borderedProminent)
+             .disabled(appState.selectedModelPath.isEmpty)
+ 
+-            Button("Discard") {
++            Button("捨棄") {
+                 if let last = server.lastLaunchedOptions {
+                     // Revert every server-launch field to the last-launched
+                     // snapshot; per-request defaults are preserved. Start
+@@ -510,7 +510,7 @@ private struct EngineAwareSections: View {
+             HStack(spacing: 8) {
+                 Image(systemName: "info.circle")
+                     .foregroundStyle(.secondary)
+-                Text("No model loaded yet — every section is shown so you can pre-tune. Once a model is active, sections that don't apply will hide automatically.")
++                Text("目前尚未載入模型，因此顯示全部設定供預先調整。模型啟用後，不適用的區段會自動隱藏。")
+                     .font(.caption2)
+                     .foregroundStyle(.secondary)
+                     .fixedSize(horizontal: false, vertical: true)
+@@ -567,9 +567,9 @@ private struct SettingsSection<Content: View>: View {
+         VStack(alignment: .leading, spacing: collapsed ? 0 : 12) {
+             if !collapsed {
+                 VStack(alignment: .leading, spacing: 2) {
+-                    Text(title)
++                    Text(NSLocalizedString(title, comment: "Settings section title"))
+                         .font(.title3.weight(.semibold))
+-                    Text(subtitle)
++                    Text(NSLocalizedString(subtitle, comment: "Settings section description"))
+                         .font(.caption)
+                         .foregroundStyle(.secondary)
+                 }
+@@ -606,7 +606,7 @@ private struct SettingsRow<Control: View>: View {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(alignment: .firstTextBaseline) {
+                     HStack(spacing: 6) {
+-                        Text(title)
++                        Text(NSLocalizedString(title, comment: "Settings row title"))
+                             .font(.body)
+                         if isDirty {
+                             Image(systemName: "arrow.clockwise.circle.fill")
+@@ -619,7 +619,7 @@ private struct SettingsRow<Control: View>: View {
+                     control
+                         .frame(maxWidth: 280, alignment: .trailing)
+                 }
+-                Text(explainer)
++                Text(NSLocalizedString(explainer, comment: "Settings row explanation"))
+                     .font(.caption2)
+                     .foregroundStyle(.secondary)
+                     .fixedSize(horizontal: false, vertical: true)
+@@ -674,7 +674,7 @@ private struct ModelFoldersSectionContent: View {
+         SearchableRow(searchText: ["Default folder", "download", Self.defaultExplainer]) {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(alignment: .firstTextBaseline) {
+-                    Text("Default folder")
++                    Text("預設資料夾")
+                         .font(.body)
+                     Spacer(minLength: 12)
+                     HStack(spacing: 8) {
+@@ -688,9 +688,9 @@ private struct ModelFoldersSectionContent: View {
+                             .lineLimit(1)
+                             .truncationMode(.middle)
+                             .frame(maxWidth: 220, alignment: .trailing)
+-                        Button("Choose…") { chooseDownloadFolder() }
++                        Button("選擇…") { chooseDownloadFolder() }
+                             .buttonStyle(.bordered)
+-                        Button("Reset") {
++                        Button("重設") {
+                             SecurityScopedBookmark.clear(name: DownloadManager.downloadFolderBookmarkName)
+                             ModelRoots().configuredDownloadRoot = nil
+                             applyFolderChange()
+@@ -750,7 +750,7 @@ private struct ModelFoldersSectionContent: View {
+         return SearchableRow(searchText: ["Custom folder", Self.explainer]) {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(alignment: .firstTextBaseline) {
+-                    Text("Custom folder")
++                    Text("自訂資料夾")
+                         .font(.body)
+                     Spacer(minLength: 12)
+                     HStack(spacing: 8) {
+@@ -760,9 +760,9 @@ private struct ModelFoldersSectionContent: View {
+                             .lineLimit(1)
+                             .truncationMode(.middle)
+                             .frame(maxWidth: 220, alignment: .trailing)
+-                        Button("Choose…") { choose() }
++                        Button("選擇…") { choose() }
+                             .buttonStyle(.bordered)
+-                        Button("Clear") {
++                        Button("清除") {
+                             downloads.customRoot = nil
+                             appState.refreshModels()
+                         }
+@@ -849,7 +849,7 @@ private struct LanSharingSectionContent: View {
+         }
+         // The privacy disclosure — sharing means running other people's
+         // prompts, and using a network model means the host reads yours.
+-        Text("Privacy: prompts sent to a model you share are processed on — and visible to — this Mac. Prompts you send to a network model are visible to the Mac hosting it. Traffic stays on your local network, and everything here is off unless you turn it on.")
++        Text("隱私：傳送給共享模型的提示會在此 Mac 上處理並可被此 Mac 看見；傳送給網路模型的提示則可被該模型所在的 Mac 看見。流量只會留在區域網路內，且所有功能預設皆為關閉。")
+             .font(.caption)
+             .foregroundStyle(.secondary)
+             .fixedSize(horizontal: false, vertical: true)
+@@ -863,7 +863,7 @@ private struct LanSharingSectionContent: View {
+         let names = Array(Set(appState.localModels.map(\.name))).sorted()
+         return VStack(alignment: .leading, spacing: 4) {
+             if names.isEmpty {
+-                Text("No local models yet — download one first.")
++                Text("尚無本機模型，請先下載一個模型。")
+                     .font(.caption)
+                     .foregroundStyle(.tertiary)
+             }
+@@ -1144,7 +1144,7 @@ private struct ContextSizeRow: View {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(alignment: .firstTextBaseline) {
+                     HStack(spacing: 6) {
+-                        Text("Context size")
++                        Text("上下文長度")
+                             .font(.body)
+                         if isDirty {
+                             Image(systemName: "arrow.clockwise.circle.fill")
+@@ -1723,7 +1723,7 @@ private struct DrafterRow: View {
+         VStack(alignment: .leading, spacing: 4) {
+             HStack(alignment: .firstTextBaseline) {
+                 HStack(spacing: 6) {
+-                    Text("Enable Assistant MTP Drafter model")
++                    Text("啟用 Assistant MTP 草稿模型")
+                         .font(.body)
+                     if dirty.dirty(\.drafterPath) {
+                         Image(systemName: "arrow.clockwise.circle.fill")
+@@ -1979,7 +1979,7 @@ private struct WakePhraseSectionContent: View {
+     var body: some View {
+         SearchableRow(searchText: ["Wake phrase", "Hey Loki", Self.explainer]) {
+             VStack(alignment: .leading, spacing: 6) {
+-                Text("Wake phrase").font(.subheadline.weight(.semibold))
++                Text("喚醒詞").font(.subheadline.weight(.semibold))
+                 TextField("Hey Loki", text: $appState.serverOptions.wakePhrase)
+                     .textFieldStyle(.roundedBorder)
+                     .frame(maxWidth: 220)
+@@ -2045,7 +2045,7 @@ private struct VoiceCloneSectionContent: View {
+     @ViewBuilder
+     private var engineBody: some View {
+         VStack(alignment: .leading, spacing: 6) {
+-            Text("Voice engine").font(.subheadline.weight(.semibold))
++            Text("語音引擎").font(.subheadline.weight(.semibold))
+             Picker("", selection: $appState.serverOptions.voiceEngine) {
+                 ForEach(VoiceEngine.allCases, id: \.self) { e in
+                     Text(e.label).tag(e)
+@@ -2069,7 +2069,7 @@ private struct VoiceCloneSectionContent: View {
+     @ViewBuilder
+     private var kokoroBody: some View {
+         VStack(alignment: .leading, spacing: 6) {
+-            Text("Kokoro voice").font(.subheadline.weight(.semibold))
++            Text("Kokoro 語音").font(.subheadline.weight(.semibold))
+             // Selecting the engine has to be able to GET the model — the gen
+             // panes have had this bar all along; Settings ▸ Voice was the one
+             // place that offered a backend with no way to fetch it. Collapses to
+@@ -2099,7 +2099,7 @@ private struct VoiceCloneSectionContent: View {
+                     if previewer.isPreviewing(appState.serverOptions.kokoroVoice) {
+                         ProgressView().controlSize(.small)
+                     } else {
+-                        Label("Play", systemImage: "play.circle")
++                        Label("播放", systemImage: "play.circle")
+                     }
+                 }
+                 .help(kokoroReady ? "Hear a short sample of this voice"
+@@ -2110,7 +2110,7 @@ private struct VoiceCloneSectionContent: View {
+             }
+             .frame(maxWidth: .infinity, alignment: .leading)
+ 
+-            Text("Voices blend: type several separated by commas (af_bella,af_sky) to make a new one.")
++            Text("混合語音：輸入多個以逗號分隔的聲音（如 af_bella,af_sky）即可建立新聲音。")
+                 .font(.caption2).foregroundStyle(.secondary)
+                 .fixedSize(horizontal: false, vertical: true)
+             if let e = previewer.error {
+@@ -2131,7 +2131,7 @@ private struct VoiceCloneSectionContent: View {
+     @ViewBuilder
+     private var clipBody: some View {
+         VStack(alignment: .leading, spacing: 6) {
+-            Text("Voice clone clip").font(.subheadline.weight(.semibold))
++            Text("語音複製片段").font(.subheadline.weight(.semibold))
+             HStack(spacing: 8) {
+                 if !appState.serverOptions.voiceClonePath.isEmpty {
+                     Image(systemName: "waveform").foregroundStyle(.secondary)
+@@ -2145,18 +2145,18 @@ private struct VoiceCloneSectionContent: View {
+                         .buttonStyle(.borderless).foregroundStyle(.secondary)
+                         .help("Remove the clip — voice mode falls back to the system voice")
+                 } else {
+-                    Text("None — voice mode uses the system voice.")
++                    Text("無 — 語音模式將使用系統語音。")
+                         .font(.caption).foregroundStyle(.secondary)
+                 }
+             }
+             HStack(spacing: 8) {
+-                Button { chooseVoiceFile() } label: { Label("Choose file…", systemImage: "folder") }
++                Button { chooseVoiceFile() } label: { Label("選擇檔案…", systemImage: "folder") }
+                 if recorder.isRecording {
+                     Button(role: .destructive) { stopRecording() } label: {
+                         Label(String(format: "Stop (%.1fs)", recorder.duration), systemImage: "stop.circle")
+                     }
+                 } else {
+-                    Button { startRecording() } label: { Label("Record", systemImage: "mic") }
++                    Button { startRecording() } label: { Label("錄音", systemImage: "mic") }
+                 }
+             }
+             .font(.caption)
+@@ -2291,10 +2291,10 @@ private struct SandboxSectionContent: View {
+                 if resetting {
+                     HStack(spacing: 6) {
+                         ProgressView().controlSize(.small)
+-                        Text("Resetting…")
++                        Text("正在重設…")
+                     }
+                 } else {
+-                    Label("Reset Sandbox…", systemImage: "trash")
++                    Label("重設沙盒…", systemImage: "trash")
+                         .foregroundStyle(.red)
+                 }
+             }
+@@ -2304,14 +2304,14 @@ private struct SandboxSectionContent: View {
+                 isPresented: $showResetConfirm,
+                 titleVisibility: .visible
+             ) {
+-                Button("Delete All Sandbox Data", role: .destructive) {
++                Button("刪除所有沙盒資料", role: .destructive) {
+                     resetting = true
+                     AgentSandbox.shared.resetAllData {
+                         resetting = false
+                     }
+                 }
+                 .keyboardShortcut(.defaultAction)
+-                Button("Cancel", role: .cancel) {}
++                Button("取消", role: .cancel) {}
+             } message: {
+                 Text("""
+                 This permanently deletes everything the sandbox has downloaded and every change made inside it — installed agent CLIs (pi, hermes), their configs and logins, and any files outside the shared workspace. Any running guest and live sessions stop immediately.
+@@ -2340,7 +2340,7 @@ private struct MessagingSectionContent: View {
+         if telegram.enabled {
+             SearchableRow(searchText: ["Status", "Telegram bot bridge connection status"]) {
+                 HStack(spacing: 8) {
+-                    Text("Status")
++                    Text("狀態")
+                         .font(.body)
+                     Spacer(minLength: 12)
+                     statusPill
+@@ -2400,7 +2400,7 @@ private struct MessagingSectionContent: View {
+             explainer: "Reply as one of your agents (Chat window ▸ Agents): its prompt, tools, model and workspace. \"None\" uses the settings above."
+         ) {
+             Picker("", selection: $appState.serverOptions.telegram.agentId) {
+-                Text("None").tag(UUID?.none)
++                Text("無").tag(UUID?.none)
+                 ForEach(appState.agents.allAgents) { agent in
+                     Text(agent.name).tag(UUID?.some(agent.id))
+                 }
+@@ -2413,14 +2413,14 @@ private struct MessagingSectionContent: View {
+         SearchableRow(searchText: ["Locked to", "Reset lock", Self.lockExplainer]) {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(alignment: .firstTextBaseline) {
+-                    Text("Locked to")
++                    Text("已鎖定至")
+                         .font(.body)
+                     Spacer(minLength: 12)
+                     HStack(spacing: 8) {
+                         Text(lockLabel)
+                             .font(.caption.monospacedDigit())
+                             .foregroundStyle(telegram.allowedChatIds.isEmpty ? .secondary : .primary)
+-                        Button("Reset lock") {
++                        Button("重設鎖定") {
+                             appState.serverOptions.telegram.allowedChatIds = []
+                         }
+                         .buttonStyle(.bordered)
+@@ -2441,13 +2441,13 @@ private struct MessagingSectionContent: View {
+             VStack(alignment: .leading, spacing: 6) {
+                 Divider()
+                     .padding(.bottom, 6)
+-                Text("Setup")
++                Text("設定方式")
+                     .font(.caption.weight(.semibold))
+-                Text("1. In Telegram, open @BotFather and send /newbot.")
++                Text("1. 在 Telegram 開啟 @BotFather 並傳送 /newbot。")
+                     .font(.caption2).foregroundStyle(.secondary)
+-                Text("2. Copy the token it gives you and paste it above.")
++                Text("2. 複製它提供的權杖並貼到上方。")
+                     .font(.caption2).foregroundStyle(.secondary)
+-                Text("3. Turn on “Enable Telegram bot”, then message your bot once to lock it to your chat.")
++                Text("3. 開啟「啟用 Telegram 機器人」，再傳送一次訊息給機器人以鎖定對話。")
+                     .font(.caption2).foregroundStyle(.secondary)
+                 Link("Open @BotFather ↗", destination: URL(string: "https://t.me/botfather")!)
+                     .font(.caption2)
+@@ -2533,7 +2533,7 @@ private struct UpdatesSectionContent: View {
+                 if case .checking = updates.phase {
+                     ProgressView().controlSize(.small)
+                 } else {
+-                    Text("Check Now")
++                    Text("立即檢查")
+                 }
+             }
+             .disabled(busy)
+@@ -2568,7 +2568,7 @@ private struct UpdatesSectionContent: View {
+                 case .installing:
+                     ProgressView().controlSize(.small)
+                 default:
+-                    Button("Download & Install") {
++                    Button("下載並安裝") {
+                         Task { await updates.downloadAndInstall() }
+                     }
+                     .buttonStyle(.borderedProminent)
+diff --git a/app/Sources/MLXServe/Views/StatusMenuView.swift b/app/Sources/MLXServe/Views/StatusMenuView.swift
+index 83fd665..5ffc5df 100644
+--- a/app/Sources/MLXServe/Views/StatusMenuView.swift
++++ b/app/Sources/MLXServe/Views/StatusMenuView.swift
+@@ -119,20 +119,20 @@ enum GenExperiment: String, CaseIterable, Identifiable {
+ 
+     var title: String {
+         switch self {
+-        case .image: "Image"
+-        case .video: "Video"
+-        case .audio: "Audio"
+-        case .model3d: "3D"
++        case .image: "圖像"
++        case .video: "影片"
++        case .audio: "音訊與音樂"
++        case .model3d: "3D 模型"
+         }
+     }
+ 
+     /// Tooltip for the tile.
+     var help: String {
+         switch self {
+-        case .image: "Image Generation (FLUX.2 / Krea-2)"
+-        case .video: "Video Generation (LTX-Video 2.3)"
+-        case .audio: "Audio Generation — voice cloning & music"
+-        case .model3d: "3D Generation — photo to mesh (Hunyuan3D 2.1)"
++        case .image: "圖像生成（FLUX.2 / Krea-2）"
++        case .video: "影片生成（LTX-Video 2.3）"
++        case .audio: "音訊生成 — 語音複製與音樂"
++        case .model3d: "3D 生成 — 將照片轉為網格（Hunyuan3D 2.1）"
+         }
+     }
+ }
+@@ -243,7 +243,7 @@ struct StatusMenuView: View {
+                     .contentShape(Rectangle())
+             }
+             .buttonStyle(.plain)
+-            .help("Settings")
++            .help("設定")
+         }
+         .padding(.horizontal, TrayMetrics.gutter)
+         .padding(.top, 12)
+@@ -259,13 +259,13 @@ struct StatusMenuView: View {
+ 
+     private var serverSection: some View {
+         VStack(alignment: .leading, spacing: TrayMetrics.rowSpacing) {
+-            TraySectionHeader(title: "Server")
++            TraySectionHeader(title: "伺服器")
+             TrayCard {
+                 if hasNoUsableModels {
+                     VStack(alignment: .leading, spacing: 3) {
+-                        Text("No models yet")
++                        Text("尚無模型")
+                             .font(.subheadline.weight(.medium))
+-                        Text("Download a model below to start chatting.")
++                        Text("請先在下方下載模型以開始對話。")
+                             .font(.caption)
+                             .foregroundStyle(.secondary)
+                     }
+@@ -297,7 +297,7 @@ struct StatusMenuView: View {
+     /// instead of the "No models yet" message.
+     private var modelPicker: some View {
+         let pickable = appState.localModels.filter { $0.isChatPickable }
+-        return Picker("Model", selection: trayModelSelection) {
++        return Picker("模型", selection: trayModelSelection) {
+             // macOS .menu Pickers key the checkmark by item TITLE — two
+             // same-named rows (one GGUF, one MLX) both rendered selected.
+             // Suffix duplicated names with the engine tag so titles stay unique.
+@@ -309,7 +309,7 @@ struct StatusMenuView: View {
+             let osaurus = pickable.filter { $0.source == .osaurus }
+             let custom = pickable.filter { $0.source == .custom }
+             if !mlxServe.isEmpty {
+-                Section("MLX-Serve Models") {
++                Section("MLX-Serve 模型") {
+                     ForEach(mlxServe) { model in
+                         Text(modelPickerLabel(model, dupNames: dupNames)).tag(model.path)
+                     }
+@@ -337,14 +337,14 @@ struct StatusMenuView: View {
+                 }
+             }
+             if !huggingFace.isEmpty {
+-                Section("Hugging Face Cache") {
++                Section("Hugging Face 快取") {
+                     ForEach(huggingFace) { model in
+                         Text(modelPickerLabel(model, dupNames: dupNames)).tag(model.path)
+                     }
+                 }
+             }
+             if !custom.isEmpty {
+-                Section("Custom Folder") {
++                Section("自訂資料夾") {
+                     ForEach(custom) { model in
+                         Text(modelPickerLabel(model, dupNames: dupNames)).tag(model.path)
+                     }
+@@ -355,7 +355,7 @@ struct StatusMenuView: View {
+             // with paths.
+             let lanChat = server.lanModels(capability: "chat")
+             if !lanChat.isEmpty {
+-                Section("On Your Network") {
++                Section("區域網路上的模型") {
+                     ForEach(lanChat, id: \.name) { m in
+                         Text(m.lanDisplayName).tag("lan:" + m.name)
+                     }
+@@ -379,7 +379,7 @@ struct StatusMenuView: View {
+             }
+             .buttonStyle(.bordered)
+             .controlSize(.regular)
+-            .help("Open Server Log in a separate window (easier copy/paste)")
++            .help("在獨立視窗開啟伺服器日誌，方便複製與貼上")
+         }
+     }
+ 
+@@ -413,7 +413,7 @@ struct StatusMenuView: View {
+ 
+     private var serverFooterRow: some View {
+         HStack {
+-            Toggle("Auto-start on launch", isOn: $appState.autoStartServer)
++            Toggle("啟動 App 時自動啟動伺服器", isOn: $appState.autoStartServer)
+                 .toggleStyle(.switch)
+                 .controlSize(.mini)
+             Spacer()
+@@ -423,7 +423,7 @@ struct StatusMenuView: View {
+                 .first(where: { $0.path == appState.selectedModelPath })?.engine
+             {
+                 Text(engine.displayName)
+-                    .help("Engine the selected model runs on")
++                    .help("所選模型使用的執行引擎")
+             }
+         }
+         .font(.caption)
+@@ -441,11 +441,11 @@ struct StatusMenuView: View {
+         // frees its memory. Unloaded stubs are hidden.
+         let loadedModels = server.allModels.filter(\.loaded)
+         return VStack(alignment: .leading, spacing: TrayMetrics.rowSpacing) {
+-            TraySectionHeader(title: "In Memory",
+-                              detail: loadedModels.count > 1 ? "\(loadedModels.count) models" : nil)
++            TraySectionHeader(title: "記憶體中",
++                              detail: loadedModels.count > 1 ? "\(loadedModels.count) 個模型" : nil)
+             TrayCard {
+                 if loadedModels.isEmpty {
+-                    Text("None loaded — models load on demand")
++                    Text("尚未載入 — 模型會在需要時載入")
+                         .font(.caption)
+                         .foregroundStyle(.secondary)
+                 }
+@@ -479,9 +479,9 @@ struct StatusMenuView: View {
+     /// two polls; the averages are whole-session.
+     @ViewBuilder private func throughputRows(_ t: ThroughputSnapshot) -> some View {
+         VStack(alignment: .leading, spacing: 2) {
+-            statRow("Tokens generated", ThroughputSnapshot.formatTokens(t.displayedTokens))
+-            statRow("Decode", "\(ThroughputSnapshot.formatTPS(server.decodeTPSNow)) now · \(ThroughputSnapshot.formatTPS(t.avgDecodeTPS)) avg tok/s")
+-            statRow("Prefill", "\(ThroughputSnapshot.formatTPS(server.prefillTPSNow)) now · \(ThroughputSnapshot.formatTPS(t.avgPrefillTPS)) avg tok/s")
++            statRow("已生成 Token", ThroughputSnapshot.formatTokens(t.displayedTokens))
++            statRow("解碼", "目前 \(ThroughputSnapshot.formatTPS(server.decodeTPSNow)) · 平均 \(ThroughputSnapshot.formatTPS(t.avgDecodeTPS)) tok/s")
++            statRow("預填", "目前 \(ThroughputSnapshot.formatTPS(server.prefillTPSNow)) · 平均 \(ThroughputSnapshot.formatTPS(t.avgPrefillTPS)) tok/s")
+         }
+     }
+ 
+@@ -501,7 +501,7 @@ struct StatusMenuView: View {
+     /// fit, which is a layout admitting it has overflowed.
+     private var mediaSection: some View {
+         VStack(alignment: .leading, spacing: TrayMetrics.rowSpacing) {
+-            TraySectionHeader(title: "Media Generation")
++            TraySectionHeader(title: "媒體生成")
+             HStack(spacing: 6) {
+                 ForEach(GenExperiment.allCases) { exp in
+                     TrayTile(icon: exp.icon, title: exp.title, help: exp.help) { open(exp) }
+@@ -532,9 +532,9 @@ struct StatusMenuView: View {
+                 TrayRowSeparator()
+             }
+ 
+-            TrayDisclosureHeader(title: "Download Models", isExpanded: $showDownloads) {
+-                TrayAccessoryButton(title: "Browse", icon: "magnifyingglass",
+-                                    help: "Open the Model Browser") {
++            TrayDisclosureHeader(title: "下載模型", isExpanded: $showDownloads) {
++                TrayAccessoryButton(title: "瀏覽", icon: "magnifyingglass",
++                                    help: "開啟模型瀏覽器") {
+                     openModelBrowser()
+                 }
+             }
+@@ -574,12 +574,12 @@ struct StatusMenuView: View {
+                 } label: {
+                     TrayFeatureRow(
+                         icon: "shippingbox.fill",
+-                        title: "Agent Sandbox",
++                        title: "代理沙盒",
+                         // guestMemoryText is quantized + published only on
+                         // change, so this row doesn't re-render per second.
+                         subtitle: sandbox.guestRunning
+-                            ? "Guest running" + (sandbox.guestMemoryText.map { " · \($0)" } ?? "")
+-                            : "Idle — boots on the first command",
++                            ? "客體執行中" + (sandbox.guestMemoryText.map { " · \($0)" } ?? "")
++                            : "閒置 — 首次執行指令時啟動",
+                         isOn: true,
+                         tint: sandbox.guestRunning ? .green : .orange
+                     ) {
+@@ -590,7 +590,7 @@ struct StatusMenuView: View {
+                     .contentShape(Rectangle())
+                 }
+                 .buttonStyle(.plain)
+-                .help("Open the Sandbox Terminal")
++                .help("開啟沙盒終端機")
+             }
+         }
+     }
+@@ -608,7 +608,7 @@ struct StatusMenuView: View {
+                 } label: {
+                     HStack(spacing: TrayFooterMetrics.iconSpacing) {
+                         Image(systemName: "bubble.left.and.bubble.right")
+-                        Text("Chat")
++                        Text("對話")
+                     }
+                     .frame(maxWidth: .infinity)
+                 }
+@@ -619,12 +619,12 @@ struct StatusMenuView: View {
+                 } label: {
+                     HStack(spacing: TrayFooterMetrics.iconSpacing) {
+                         Image(systemName: "clock.badge.checkmark")
+-                        Text("Tasks")
++                        Text("任務")
+                     }
+                     .frame(maxWidth: .infinity)
+                 }
+                 .buttonStyle(.bordered)
+-                .help("Scheduled Tasks")
++                .help("排程任務")
+ 
+                 // The App Store build can't detect or launch other apps'
+                 // CLIs, so its Code button shows copy-paste terminal
+@@ -662,7 +662,7 @@ struct StatusMenuView: View {
+                     Image(systemName: "power")
+                 }
+                 .buttonStyle(.bordered)
+-                .help("Quit MLX Core")
++                .help("結束 MLX Core")
+             }
+             .padding(.horizontal, TrayMetrics.gutter)
+             .padding(.vertical, 10)
+@@ -754,8 +754,8 @@ struct StatusMenuView: View {
+                     .background(Color.green.opacity(0.15))
+                     .clipShape(Capsule())
+                     .help(info.mtpLoaded
+-                          ? "Native multi-token-prediction head loaded — faster decode via speculative decoding"
+-                          : "Assistant drafter loaded — faster decode via speculative decoding")
++                          ? "已載入原生多 Token 預測頭 — 透過推測解碼加速"
++                          : "已載入 Assistant 草稿模型 — 透過推測解碼加速")
+             }
+             Spacer()
+             if info.bytesResident > 0 {
+@@ -779,11 +779,11 @@ struct StatusMenuView: View {
+             }
+             .buttonStyle(.borderless)
+             .foregroundStyle(copiedModelName == info.name ? .green : .secondary)
+-            .help("Copy model name")
++            .help("複製模型名稱")
+             if unloadingIds.contains(info.name) {
+                 ProgressView()
+                     .controlSize(.mini)
+-                    .help("Unloading — waits for any running request to finish")
++                    .help("正在卸載 — 將等待執行中的請求完成")
+             } else {
+                 Button {
+                     unloadSlot(info.name)
+@@ -793,7 +793,7 @@ struct StatusMenuView: View {
+                 }
+                 .buttonStyle(.borderless)
+                 .foregroundStyle(.secondary)
+-                .help("Unload from memory (the model reloads on its next use)")
++                .help("從記憶體卸載（下次使用時會重新載入）")
+             }
+         }
+     }
+@@ -827,7 +827,7 @@ struct UpdateTrayRow: View {
+                     Image(systemName: "sparkles")
+                         .foregroundStyle(.blue)
+                     VStack(alignment: .leading, spacing: 1) {
+-                        Text("MLX Core v\(update.version) is available")
++                    Text("MLX Core v\(update.version) 已可更新")
+                             .font(.subheadline.weight(.medium))
+                         if case .failed(let message) = updates.phase {
+                             Text(message)
+@@ -836,7 +836,7 @@ struct UpdateTrayRow: View {
+                                 .lineLimit(3)
+                                 .textSelection(.enabled)
+                         } else if let page = update.releasePageURL {
+-                            Link("Release notes", destination: page)
++                            Link("版本說明", destination: page)
+                                 .font(.caption2)
+                         }
+                     }
+@@ -846,12 +846,12 @@ struct UpdateTrayRow: View {
+                         ProgressView()
+                             .controlSize(.small)
+                     default:
+-                        Button("Update") {
++                        Button("更新") {
+                             Task { await updates.downloadAndInstall() }
+                         }
+                         .buttonStyle(.borderedProminent)
+                         .controlSize(.small)
+-                        .help("Download v\(update.version), install, and relaunch")
++                        .help("下載並安裝 v\(update.version)，然後重新啟動")
+                     }
+                 }
+                 if case .downloading(let fraction) = updates.phase {
+@@ -859,7 +859,7 @@ struct UpdateTrayRow: View {
+                         .progressViewStyle(.linear)
+                 }
+                 if case .installing = updates.phase {
+-                    Text("Installing — the app will relaunch")
++                    Text("正在安裝 — App 將會重新啟動")
+                         .font(.caption2)
+                         .foregroundStyle(.secondary)
+                 }
+@@ -911,25 +911,25 @@ struct ServerControlButtonPresentation: Equatable {
+     init(status: ServerStatus) {
+         switch status {
+         case .starting:
+-            title = "Loading Model..."
++            title = "正在載入模型…"
+             systemImageName = nil
+             showsProgress = true
+             tint = .loading
+-            help = "Loading model. Click to stop."
++            help = "正在載入模型，按一下即可停止。"
+             isProminent = true
+         case .running:
+-            title = "Stop Server"
++            title = "停止伺服器"
+             systemImageName = "stop.fill"
+             showsProgress = false
+             tint = .red
+-            help = "Stop the running server."
++            help = "停止執行中的伺服器。"
+             isProminent = false
+         case .stopped, .error:
+-            title = "Start Server"
++            title = "啟動伺服器"
+             systemImageName = "play.fill"
+             showsProgress = false
+             tint = .accent
+-            help = "Start the selected model."
++            help = "啟動所選模型。"
+             isProminent = true
+         }
+     }
+@@ -1001,10 +1001,10 @@ struct EndpointsSection: View {
+ 
+     var body: some View {
+         VStack(alignment: .leading, spacing: 4) {
+-            TrayDisclosureHeader(title: "Endpoints", isExpanded: $isExpanded) {
++            TrayDisclosureHeader(title: "端點", isExpanded: $isExpanded) {
+                 if showsMetricsButton {
+-                    TrayAccessoryButton(title: "Metrics", icon: "chart.bar.xaxis",
+-                                        help: "Open the live metrics panel in your browser") {
++                    TrayAccessoryButton(title: "指標", icon: "chart.bar.xaxis",
++                                        help: "在瀏覽器開啟即時指標面板") {
+                         if let root = Self.rootURL(baseURL) {
+                             NSWorkspace.shared.open(root)
+                         }
+@@ -1043,7 +1043,7 @@ struct EndpointsSection: View {
+                     .contentShape(Rectangle())
+                 }
+                 .buttonStyle(.plain)
+-                .help("Open the server status page in your browser")
++                .help("在瀏覽器開啟伺服器狀態頁")
+                 .padding(.vertical, 1)
+ 
+                 ForEach(endpoints, id: \.path) { ep in
+@@ -1097,8 +1097,8 @@ func launchClaudeCodeWithPicker(baseURL: String, serverContextLength: Int? = nil
+     panel.canChooseFiles = false
+     panel.allowsMultipleSelection = false
+     panel.canCreateDirectories = true
+-    panel.prompt = "Open"
+-    panel.message = "Select or create a working directory"
++    panel.prompt = "開啟"
++    panel.message = "選擇或建立工作目錄"
+     let defaultWS = NSString(string: "~/.mlx-serve/workspace").expandingTildeInPath
+     try? FileManager.default.createDirectory(atPath: defaultWS, withIntermediateDirectories: true)
+     panel.directoryURL = URL(fileURLWithPath: defaultWS)
+@@ -1180,38 +1180,38 @@ struct ServerLogWindowView: View {
+             Spacer()
+ 
+             Toggle(isOn: $autoScroll) {
+-                Label("Auto-scroll", systemImage: "arrow.down.to.line")
++                Label("自動捲動", systemImage: "arrow.down.to.line")
+             }
+             .toggleStyle(.button)
+             .controlSize(.small)
+             .help(autoScroll
+-                  ? "Auto-scroll is ON — new lines pin the view to the bottom"
+-                  : "Auto-scroll is OFF — the view stays where you left it")
++                  ? "自動捲動已開啟 — 新內容會固定顯示在底部"
++                  : "自動捲動已關閉 — 畫面會停留在目前位置")
+ 
+             Button {
+                 copyLog()
+             } label: {
+-                Label(copied ? "Copied" : "Copy",
++                Label(copied ? "已複製" : "複製",
+                       systemImage: copied ? "checkmark" : "doc.on.doc")
+             }
+             .controlSize(.small)
+-            .help("Copy the entire log to the clipboard")
++            .help("將完整日誌複製到剪貼簿")
+ 
+             Button {
+                 saveLog()
+             } label: {
+-                Label("Save…", systemImage: "square.and.arrow.down")
++                Label("儲存…", systemImage: "square.and.arrow.down")
+             }
+             .controlSize(.small)
+-            .help("Save the log to a .log file")
++            .help("將日誌儲存為 .log 檔案")
+ 
+             Button(role: .destructive) {
+                 server.clearServerLog()
+             } label: {
+-                Label("Clear", systemImage: "trash")
++                Label("清除", systemImage: "trash")
+             }
+             .controlSize(.small)
+-            .help("Clear the in-memory log buffer (does not affect the running server)")
++            .help("清除記憶體中的日誌緩衝區（不影響執行中的伺服器）")
+         }
+         .padding(.horizontal, 12)
+         .padding(.vertical, 8)
+@@ -1230,7 +1230,7 @@ struct ServerLogWindowView: View {
+             // Empty-state placeholder. Pure poller.text check — re-renders
+             // only when the log transitions to/from empty.
+             if poller.text.isEmpty {
+-                Text("(server has produced no output yet)")
++                Text("（伺服器尚未產生輸出）")
+                     .font(.system(size: 12, design: .monospaced))
+                     .foregroundStyle(.secondary)
+                     .padding(12)
+@@ -1244,10 +1244,10 @@ struct ServerLogWindowView: View {
+ 
+     private var statusLabel: String {
+         switch server.status {
+-        case .running:  return "Running"
+-        case .starting: return "Starting…"
+-        case .stopped:  return "Stopped"
+-        case .error:    return "Error"
++        case .running:  return "執行中"
++        case .starting: return "正在啟動…"
++        case .stopped:  return "已停止"
++        case .error:    return "錯誤"
+         }
+     }
+ 
+@@ -1364,4 +1364,3 @@ struct TerminalLogTextView: NSViewRepresentable {
+         context.coordinator.lastAutoScroll = autoScroll
+     }
+ }
+-
+diff --git a/app/Sources/MLXServe/Views/TrayChrome.swift b/app/Sources/MLXServe/Views/TrayChrome.swift
+index 089a435..3075860 100644
+--- a/app/Sources/MLXServe/Views/TrayChrome.swift
++++ b/app/Sources/MLXServe/Views/TrayChrome.swift
+@@ -42,10 +42,10 @@ struct TrayStatusChipModel: Equatable {
+ 
+     init(status: ServerStatus) {
+         switch status {
+-        case .running:  (label, tone) = ("Running", .running)
+-        case .starting: (label, tone) = ("Loading", .starting)
+-        case .stopped:  (label, tone) = ("Stopped", .stopped)
+-        case .error:    (label, tone) = ("Error", .error)
++        case .running:  (label, tone) = ("執行中", .running)
++        case .starting: (label, tone) = ("載入中", .starting)
++        case .stopped:  (label, tone) = ("已停止", .stopped)
++        case .error:    (label, tone) = ("錯誤", .error)
+         }
+     }
+ }
+@@ -87,12 +87,12 @@ struct TraySectionHeader: View {
+ 
+     var body: some View {
+         HStack(spacing: 6) {
+-            Text(title.uppercased())
++            Text(NSLocalizedString(title, comment: "Menu bar section title").uppercased())
+                 .font(.caption2.weight(.semibold))
+                 .tracking(0.6)
+             Spacer(minLength: 0)
+             if let detail {
+-                Text(detail)
++                Text(NSLocalizedString(detail, comment: "Menu bar section detail"))
+                     .font(.caption2)
+                     .foregroundStyle(.tertiary)
+             }
+diff --git a/app/Sources/MLXServe/Views/VideoGenView.swift b/app/Sources/MLXServe/Views/VideoGenView.swift
+index 280bcd3..d1f6229 100644
+--- a/app/Sources/MLXServe/Views/VideoGenView.swift
++++ b/app/Sources/MLXServe/Views/VideoGenView.swift
+@@ -322,15 +322,15 @@ struct VideoGenView: View {
+         // (audio-to-video requires it) — say so instead of lying "1-stage".
+         // Gated on the capability so a stale clip can't make H3 claim it.
+         let label = (model.supportsAudioInput && audioURL != nil && s.mode == .oneStage)
+-            ? "2-stage (audio-to-video)" : modeLabel(s.mode)
+-        return "\(label), \(s.steps) steps, \(s.numFrames) frames (~\(String(format: "%.1f", durationSec))s)"
++            ? "兩階段（音訊轉影片）" : modeLabel(s.mode)
++        return "\(label)，\(s.steps) 步，\(s.numFrames) 幀（約 \(String(format: "%.1f", durationSec)) 秒）"
+     }
+ 
+     private func modeLabel(_ m: VideoPipelineMode) -> String {
+         switch m {
+-        case .oneStage:   return "1-stage"
+-        case .twoStage:   return "2-stage"
+-        case .twoStageHQ: return "2-stage HQ"
++        case .oneStage:   return "單階段"
++        case .twoStage:   return "兩階段"
++        case .twoStageHQ: return "兩階段高品質"
+         }
+     }
+ 
+@@ -409,7 +409,7 @@ struct VideoGenView: View {
+             HStack {
+                 Text("Frames").font(.subheadline.weight(.semibold))
+                 Spacer()
+-                Text("\(numFrames) frames · ~\(String(format: "%.1f", Double(numFrames) / Double(fps)))s")
++                Text("\(numFrames) 幀 · 約 \(String(format: "%.1f", Double(numFrames) / Double(fps))) 秒")
+                     .font(.caption.monospacedDigit())
+                     .foregroundStyle(.secondary)
+             }
+diff --git a/app/Sources/MLXServe/Views/VoiceTrayPanel.swift b/app/Sources/MLXServe/Views/VoiceTrayPanel.swift
+index 4597ff0..83faf34 100644
+--- a/app/Sources/MLXServe/Views/VoiceTrayPanel.swift
++++ b/app/Sources/MLXServe/Views/VoiceTrayPanel.swift
+@@ -47,8 +47,8 @@ struct VoiceTrayPanel: View {
+     private var header: some View {
+         TrayFeatureRow(
+             icon: "waveform",
+-            title: "Voice",
+-            subtitle: "Hands-free — no window needed",
++            title: "語音",
++            subtitle: "免持使用 — 不需開啟視窗",
+             isOn: voice.isActive
+         ) {
+             Toggle("", isOn: activeBinding)
+@@ -57,7 +57,7 @@ struct VoiceTrayPanel: View {
+                 .controlSize(.small)
+                 .disabled(appState.server.status != .running)
+         }
+-        .help("Hands-free voice assistant — talk to the model with no chat window required. Speech-to-text and text-to-speech run locally on your Mac. When this popover is closed, feedback is audio-only; reopen it for status and controls.")
++        .help("免持語音助理 — 不需開啟對話視窗即可與模型交談。語音辨識與語音合成都在此 Mac 本機執行；關閉此面板後將只提供語音回饋，可重新開啟查看狀態與控制項。")
+     }
+ 
+     /// On → open the selected agent's thread (creating it on first use), then
+@@ -146,7 +146,7 @@ struct VoiceTrayPanel: View {
+                 .foregroundStyle(.secondary)
+             Picker("", selection: Binding(get: { appState.defaultAgentId },
+                                           set: { appState.defaultAgentId = $0 })) {
+-                Text("None (app defaults)").tag(UUID?.none)
++                Text("無（使用 App 預設值）").tag(UUID?.none)
+                 ForEach(appState.agents.allAgents) { agent in
+                     Text(agentLabel(agent)).tag(UUID?.some(agent.id))
+                 }
+@@ -155,7 +155,7 @@ struct VoiceTrayPanel: View {
+             .controlSize(.small)
+             .fixedSize()
+             Spacer(minLength: 0)
+-            Button("Manage…") { openAgents() }
++            Button("管理…") { openAgents() }
+                 .buttonStyle(.link)
+                 .font(.caption2)
+         }
+@@ -210,7 +210,7 @@ struct VoiceTrayPanel: View {
+             HStack(spacing: 6) {
+                 Image(systemName: "shield.lefthalf.filled")
+                     .foregroundStyle(.orange)
+-                Text("Allow this tool call?")
++                Text("允許這次工具呼叫嗎？")
+                     .font(.caption.weight(.semibold))
+             }
+             Text(req.toolName)
+@@ -226,13 +226,13 @@ struct VoiceTrayPanel: View {
+             }
+             HStack(spacing: 6) {
+                 Button(role: .destructive) { voice.resolve(.deny) } label: {
+-                    Text("Deny").frame(maxWidth: .infinity)
++                    Text("拒絕").frame(maxWidth: .infinity)
+                 }
+                 Button { voice.resolve(.allow, allowAll: true) } label: {
+-                    Text("Always").frame(maxWidth: .infinity)
++                    Text("一律允許").frame(maxWidth: .infinity)
+                 }
+                 Button { voice.resolve(.allow) } label: {
+-                    Text("Allow").frame(maxWidth: .infinity)
++                    Text("允許").frame(maxWidth: .infinity)
+                 }
+                 .buttonStyle(.borderedProminent)
+             }
